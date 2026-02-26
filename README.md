@@ -33,24 +33,7 @@ API JPA (javax.persistence)
 
 SLF4J (logs)
 
-📂 Structure du projet
-optimistic-locking-demo
-│
-├── src/main/java/com/example
-│   ├── model
-│   │   ├── Utilisateur.java
-│   │   ├── Salle.java
-│   │   └── Reservation.java   ← contient @Version
-│   │
-│   ├── service
-│   │   ├── ReservationService.java
-│   │   └── ReservationServiceImpl.java
-│   │
-│   ├── ConcurrentReservationSimulator.java
-│   └── OptimisticLockingRetryHandler.java
-│
-└── src/main/resources/META-INF
-    └── persistence.xml
+
 🗄️ Modèle de données
 Entités principales
 👤 Utilisateur
