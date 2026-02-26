@@ -1,21 +1,25 @@
-TP 6 – Optimistic Locking avec @Version (JPA / Hibernate)
-📌 Description du projet
+📌 TP 6 – Simulation d’un Conflit Concurrent et Optimistic Locking avec @Version
+🧠 Introduction
 
-Ce projet démontre le mécanisme de verrouillage optimiste (Optimistic Locking) avec JPA et Hibernate, en simulant un conflit de modification concurrente sur une entité Reservation.
+Dans les applications multi-utilisateurs, plusieurs utilisateurs peuvent modifier les mêmes données en même temps.
+Sans mécanisme de contrôle, cela peut provoquer une perte de données.
 
-L’objectif est de comprendre comment l’annotation @Version permet d’éviter les pertes de données lorsqu’une même ligne est modifiée simultanément par plusieurs transactions.
+Ce projet démontre comment utiliser le verrouillage optimiste (Optimistic Locking) avec JPA / Hibernate afin de détecter et gérer ces conflits.
 
-🎯 Objectifs pédagogiques
 
-Comprendre le concept de verrouillage optimiste
+🎯 Objectifs du TP
 
-Implémenter l’annotation @Version
+Comprendre le principe du verrouillage optimiste
+
+Utiliser l’annotation @Version
 
 Simuler un conflit concurrent avec plusieurs threads
 
-Gérer l’exception OptimisticLockException
+Capturer et gérer OptimisticLockException
 
-Mettre en place une stratégie de retry automatique
+Implémenter une stratégie de retry automatique
+
+
 
 🛠️ Technologies utilisées
 
@@ -25,18 +29,33 @@ Maven
 
 JPA 2.2
 
-Hibernate 5.6.5
+Hibernate 5.6
 
-Base de données embarquée H2 Database
-
-API JPA (javax.persistence)
+Base de données embarquée : H2 Database
 
 SLF4J (logs)
 
 
+
+📁 Organisation du projet
+src/main/java/com/example
+│
+├── model
+│   ├── Utilisateur.java
+│   ├── Salle.java
+│   └── Reservation.java  ← contient @Version
+│
+├── service
+│   ├── ReservationService.java
+│   └── ReservationServiceImpl.java
+│
+├── ConcurrentReservationSimulator.java
+└── OptimisticLockingRetryHandler.java
+
+
+
 🗄️ Modèle de données
-Entités principales
-👤 Utilisateur
+🔹 Utilisateur
 
 id
 
@@ -46,7 +65,7 @@ prenom
 
 email
 
-🏢 Salle
+🔹 Salle
 
 id
 
@@ -56,7 +75,7 @@ capacite
 
 description
 
-📅 Reservation
+🔹 Reservation
 
 id
 
@@ -72,56 +91,31 @@ salle (ManyToOne)
 
 version (@Version)
 
-@Version
-private Long version;
+
+
+
 🔐 Fonctionnement du Verrouillage Optimiste
 
-Lorsqu’une entité possède un champ annoté @Version :
+Hibernate ajoute une colonne version en base.
 
-Hibernate ajoute une colonne version dans la table.
+Lors d’un UPDATE, la version est vérifiée.
 
-À chaque mise à jour :
+Si la version a changé entre-temps :
+➜ OptimisticLockException
 
-La version est vérifiée.
+Sinon :
+➜ La version est incrémentée automatiquement.
 
-Si la version en base ≠ version en mémoire → exception.
 
-Si aucune autre transaction n’a modifié la ligne :
 
-La version est automatiquement incrémentée.
+🧪 Simulation des Conflits
+🔴 1️⃣ Simulation sans Retry
 
-Exemple SQL généré :
+Deux threads modifient la même réservation :
 
-update reservations 
-set ..., version=? 
-where id=? and version=?
+Thread 1 → modifie le motif
 
-Si aucune ligne n’est modifiée → OptimisticLockException.
-
-⚙️ Configuration
-persistence.xml
-
-Base en mémoire H2
-
-hibernate.hbm2ddl.auto = create-drop
-
-Affichage des requêtes SQL activé
-
-▶️ Exécution du projet
-Via Maven :
-mvn clean compile exec:java -Dexec.mainClass="com.example.ConcurrentReservationSimulator"
-Ou via l’IDE :
-
-Exécuter la classe :
-
-ConcurrentReservationSimulator
-🧪 Simulation 1 – Conflit sans Retry
-
-Deux threads modifient simultanément la même réservation :
-
-Thread 1 modifie le motif
-
-Thread 2 modifie les dates
+Thread 2 → modifie les dates
 
 Résultat attendu :
 
@@ -129,79 +123,52 @@ Un thread réussit
 
 L’autre déclenche OptimisticLockException
 
-Console attendue :
 
-Thread 1 : Réservation récupérée, version = 0
-Thread 2 : Réservation récupérée, version = 0
-Thread 2 : Réservation mise à jour avec succès !
-Thread 1 : Conflit de verrouillage optimiste détecté !
-🔁 Simulation 2 – Conflit avec Retry
 
-La classe OptimisticLockingRetryHandler :
+🟢 2️⃣ Simulation avec Retry
 
-Tente plusieurs mises à jour
+Utilisation de :
 
-Relit l’entité après un conflit
+OptimisticLockingRetryHandler
 
-Réessaie jusqu’à maxRetries
+Fonctionnement :
 
-Stratégie utilisée :
+Tentatives multiples (max 3)
 
-Maximum 3 tentatives
+Relit l’entité après conflit
 
-Backoff progressif (Thread.sleep)
+Réessaie automatiquement
 
-Résultat attendu :
+Résultat :
 
 Les deux modifications sont appliquées
 
 Aucune perte de données
 
-📊 Comparaison des stratégies
-Sans @Version	Avec @Version
-Perte silencieuse de données	Détection de conflit
-Dernière écriture gagne	Exception levée
-Pas de sécurité	Cohérence garantie
-🧠 Concepts Clés
-Verrouillage pessimiste
 
-Bloque la ligne en base
+📸  Captures d’Écran
+<img width="1920" height="1080" alt="Screenshot (249)" src="https://github.com/user-attachments/assets/3682e9c9-94f1-4264-9b3f-3e48490a3d94" />
+<img width="1920" height="1080" alt="Screenshot (250)" src="https://github.com/user-attachments/assets/6ff24ce1-8c2f-4026-a4fe-f3a642729e8b" />
+<img width="1920" height="1080" alt="Screenshot (251)" src="https://github.com/user-attachments/assets/cf58071d-5238-4cd4-b20d-4663b6d3067d" />
+<img width="1920" height="1080" alt="Screenshot (252)" src="https://github.com/user-attachments/assets/592762cf-8a9d-44e3-b835-43e755027cbc" />
+<img width="1920" height="1080" alt="Screenshot (253)" src="https://github.com/user-attachments/assets/e3dbca20-6923-4579-953a-0aadce72ec47" />
+<img width="1920" height="1080" alt="Screenshot (254)" src="https://github.com/user-attachments/assets/d375d270-4ab1-4767-8f39-4984068e1331" />
+<img width="1920" height="1080" alt="Screenshot (255)" src="https://github.com/user-attachments/assets/711a0c8b-a038-4731-ba68-78f6a6d3fb45" />
+<img width="1920" height="1080" alt="Screenshot (256)" src="https://github.com/user-attachments/assets/966f6950-4f7d-4094-8740-b83f8a9bf3b4" />
+<img width="1920" height="1080" alt="Screenshot (257)" src="https://github.com/user-attachments/assets/7b7e4369-801a-49b4-8e78-af6714db7b21" />
+<img width="1920" height="1080" alt="Screenshot (258)" src="https://github.com/user-attachments/assets/98ba13cc-e42c-4960-9090-7288cca11dfe" />
+<img width="1920" height="1080" alt="Screenshot (259)" src="https://github.com/user-attachments/assets/c5d87b39-3e1b-4a7a-bc6b-0cff63998548" />
+<img width="1920" height="1080" alt="Screenshot (260)" src="https://github.com/user-attachments/assets/e4d419e0-5acb-44fc-9cde-da090d8ce88c" />
 
-Utilise SELECT FOR UPDATE
 
-Impacte les performances
+🎓 Conclusion
 
-Verrouillage optimiste
+Ce TP montre que :
 
-Ne bloque pas
+Le verrouillage optimiste est adapté aux applications web.
 
-Vérifie à la fin
+@Version protège contre les mises à jour concurrentes.
 
-Meilleure scalabilité
+Une stratégie de retry améliore la robustesse.
 
-Ce TP utilise le verrouillage optimiste, recommandé pour les applications web à forte concurrence.
-
-🚀 Points importants à retenir
-
-@Version est indispensable pour activer l’optimistic locking
-
-L’exception OptimisticLockException doit être gérée
-
-Toujours relire l’entité avant un retry
-
-Le retry doit être limité pour éviter une boucle infinie
-
-📌 Améliorations possibles
-
-Ajouter une interface REST (Spring Boot)
-
-Ajouter des tests unitaires
-
-Implémenter le verrouillage pessimiste pour comparaison
-
-Ajouter des logs plus détaillés
-
-👩‍💻 Auteur
-
-Projet réalisé dans le cadre du TP 6 – JPA/Hibernate
-Démonstration pédagogique du mécanisme @Version.
+Ce mécanisme garantit l’intégrité des données sans bloquer les transactions.
